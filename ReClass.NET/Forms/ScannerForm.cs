@@ -734,6 +734,14 @@ namespace ReClassNET.Forms
 				if (!long.TryParse(dualValueBox.Value1, numberStyle, null, out var value1)) throw new InvalidInputException(dualValueBox.Value1);
 				if (!long.TryParse(dualValueBox.Value2, numberStyle, null, out var value2) && checkBothInputFields) throw new InvalidInputException(dualValueBox.Value2);
 
+				if (compareType == ScanCompareType.Between || compareType == ScanCompareType.BetweenOrEqual)
+				{
+					if (value1 > value2)
+					{
+						Utils.Swap(ref value1, ref value2);
+					}
+				}
+
 				switch (settings.ValueType)
 				{
 					case ScanValueType.Byte:
@@ -764,10 +772,18 @@ namespace ReClassNET.Forms
 					return digits;
 				}
 
-				var nf1 = Utils.GuessNumberFormat(dualValueBox.Value1);
+				var nf1 = NumberFormat.GuessNumberFormat(dualValueBox.Value1);
 				if (!double.TryParse(dualValueBox.Value1, NumberStyles.Float, nf1, out var value1)) throw new InvalidInputException(dualValueBox.Value1);
-				var nf2 = Utils.GuessNumberFormat(dualValueBox.Value2);
+				var nf2 = NumberFormat.GuessNumberFormat(dualValueBox.Value2);
 				if (!double.TryParse(dualValueBox.Value2, NumberStyles.Float, nf2, out var value2) && checkBothInputFields) throw new InvalidInputException(dualValueBox.Value2);
+
+				if (compareType == ScanCompareType.Between || compareType == ScanCompareType.BetweenOrEqual)
+				{
+					if (value1 > value2)
+					{
+						Utils.Swap(ref value1, ref value2);
+					}
+				}
 
 				var significantDigits = Math.Max(
 					CalculateSignificantDigits(dualValueBox.Value1, nf1),

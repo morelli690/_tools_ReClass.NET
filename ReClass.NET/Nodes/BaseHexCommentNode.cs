@@ -30,7 +30,7 @@ namespace ReClassNET.Nodes
 				}
 			}
 
-			var namedAddress = view.Memory.Process.GetNamedAddress(ivalue);
+			var namedAddress = view.Process.GetNamedAddress(ivalue);
 			if (!string.IsNullOrEmpty(namedAddress))
 			{
 				if (view.Settings.ShowCommentPointer)
@@ -41,7 +41,7 @@ namespace ReClassNET.Nodes
 
 				if (view.Settings.ShowCommentRtti)
 				{
-					var rtti = view.Memory.Process.ReadRemoteRuntimeTypeInformation(ivalue);
+					var rtti = view.Process.ReadRemoteRuntimeTypeInformation(ivalue);
 					if (!string.IsNullOrEmpty(rtti))
 					{
 						x = AddText(view, x, y, view.Settings.OffsetColor, HotSpot.ReadOnlyId, rtti) + view.Font.Width;
@@ -50,10 +50,10 @@ namespace ReClassNET.Nodes
 
 				if (view.Settings.ShowCommentSymbol)
 				{
-					var module = view.Memory.Process.GetModuleToPointer(ivalue);
+					var module = view.Process.GetModuleToPointer(ivalue);
 					if (module != null)
 					{
-						var symbols = view.Memory.Process.Symbols.GetSymbolsForModule(module);
+						var symbols = view.Process.Symbols.GetSymbolsForModule(module);
 						var symbol = symbols?.GetSymbolString(ivalue, module);
 						if (!string.IsNullOrEmpty(symbol))
 						{
@@ -64,18 +64,28 @@ namespace ReClassNET.Nodes
 
 				if (view.Settings.ShowCommentString)
 				{
-					var data = view.Memory.Process.ReadRemoteMemory(ivalue, 64);
+					var data = view.Process.ReadRemoteMemory(ivalue, 64);
+
+					var isWideString = false;
+					string text = null;
 
 					// First check if it could be an UTF8 string and if not try UTF16.
-					if (data.Take(IntPtr.Size).InterpretAsUtf8().IsPrintableData())
+					if (data.Take(IntPtr.Size).InterpretAsSingleByteCharacter().IsPrintableData())
 					{
-						var text = new string(Encoding.UTF8.GetChars(data).TakeWhile(c => c != 0).ToArray());
-						x = AddText(view, x, y, view.Settings.TextColor, HotSpot.ReadOnlyId, $"'{text}'") + view.Font.Width;
+						text = new string(Encoding.UTF8.GetChars(data).TakeWhile(c => c != 0).ToArray());
 					}
-					else if(data.Take(IntPtr.Size * 2).InterpretAsUtf16().IsPrintableData())
+					else if(data.Take(IntPtr.Size * 2).InterpretAsDoubleByteCharacter().IsPrintableData())
 					{
-						var text = new string(Encoding.Unicode.GetChars(data).TakeWhile(c => c != 0).ToArray());
-						x = AddText(view, x, y, view.Settings.TextColor, HotSpot.ReadOnlyId, $"L'{text}'") + view.Font.Width;
+						isWideString = true;
+
+						text = new string(Encoding.Unicode.GetChars(data).TakeWhile(c => c != 0).ToArray());
+					}
+
+					if (text != null)
+					{
+						x = AddText(view, x, y, view.Settings.TextColor, HotSpot.NoneId, isWideString ? "L'" : "'");
+						x = AddText(view, x, y, view.Settings.TextColor, HotSpot.ReadOnlyId, text);
+						x = AddText(view, x, y, view.Settings.TextColor, HotSpot.NoneId, "'") + view.Font.Width;
 					}
 				}
 
@@ -85,7 +95,7 @@ namespace ReClassNET.Nodes
 
 					foreach (var reader in NodeInfoReader)
 					{
-						var info = reader.ReadNodeInfo(this, nodeAddress, ivalue, view.Memory);
+						var info = reader.ReadNodeInfo(this, view.Process, view.Memory, nodeAddress, ivalue);
 						if (info != null)
 						{
 							x = AddText(view, x, y, view.Settings.PluginColor, HotSpot.ReadOnlyId, info) + view.Font.Width;

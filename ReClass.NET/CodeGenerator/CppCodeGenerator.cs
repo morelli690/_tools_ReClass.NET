@@ -348,6 +348,8 @@ namespace ReClassNET.CodeGenerator
 			writer.Indent--;
 			writer.Write("}; //Size: 0x");
 			writer.WriteLine($"{@class.MemorySize:X04}");
+
+			writer.WriteLine($"static_assert(sizeof({@class.Name}) == 0x{@class.MemorySize:X});");
 		}
 
 		/// <summary>
@@ -457,6 +459,24 @@ namespace ReClassNET.CodeGenerator
 				}
 				writer.WriteLine();
 			}
+			else if (node is UnionNode unionNode)
+			{
+				writer.Write("union //0x");
+				writer.Write($"{node.Offset:X04}");
+				if (!string.IsNullOrEmpty(node.Comment))
+				{
+					writer.Write(" ");
+					writer.Write(node.Comment);
+				}
+				writer.WriteLine();
+				writer.WriteLine("{");
+				writer.Indent++;
+
+				WriteNodes(writer, unionNode.Nodes, logger);
+
+				writer.Indent--;
+				writer.WriteLine("};");
+			}
 			else
 			{
 				logger.Log(LogLevel.Error, $"Skipping node with unhandled type: {node.GetType()}");
@@ -478,11 +498,11 @@ namespace ReClassNET.CodeGenerator
 
 			BaseNode GetCharacterNodeForEncoding(Encoding encoding)
 			{
-				if (encoding.Equals(Encoding.Unicode))
+				if (encoding.IsSameCodePage(Encoding.Unicode))
 				{
 					return new Utf16CharacterNode();
 				}
-				if (encoding.Equals(Encoding.UTF32))
+				if (encoding.IsSameCodePage(Encoding.UTF32))
 				{
 					return new Utf32CharacterNode();
 				}

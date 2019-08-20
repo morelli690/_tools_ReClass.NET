@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Drawing;
 using System.Linq;
-using ReClassNET.AddressParser;
-using ReClassNET.Extensions;
-using ReClassNET.Memory;
 using ReClassNET.UI;
-using ReClassNET.Util;
 
 namespace ReClassNET.Nodes
 {
@@ -19,8 +14,10 @@ namespace ReClassNET.Nodes
 
 #if RECLASSNET64
 		public static IntPtr DefaultAddress { get; } = (IntPtr)0x140000000;
+		public static string DefaultAddressFormula { get; } = "140000000";
 #else
 		public static IntPtr DefaultAddress { get; } = (IntPtr)0x400000;
+		public static string DefaultAddressFormula { get; } = "400000";
 #endif
 
 		public override int MemorySize => Nodes.Sum(n => n.MemorySize);
@@ -39,20 +36,7 @@ namespace ReClassNET.Nodes
 			}
 		}
 
-		private IntPtr address;
-
-		public IntPtr Address
-		{
-			get => address;
-			set
-			{
-				Contract.Ensures(AddressFormula != null);
-				address = value;
-				AddressFormula = value.ToString("X");
-			}
-		}
-
-		public string AddressFormula { get; set; }
+		public string AddressFormula { get; set; } = DefaultAddressFormula;
 
 		public event NodeEventHandler NodesChanged;
 
@@ -63,8 +47,6 @@ namespace ReClassNET.Nodes
 			LevelsOpen.DefaultValue = true;
 
 			Uuid = new NodeUuid(true);
-
-			Address = DefaultAddress;
 
 			if (notifyClassCreated)
 			{
@@ -133,12 +115,22 @@ namespace ReClassNET.Nodes
 				nv.Level++;
 				foreach (var node in Nodes)
 				{
+					Size AggregateNodeSizes(Size baseSize, Size newSize)
+					{
+						return new Size(Math.Max(baseSize.Width, newSize.Width), baseSize.Height + newSize.Height);
+					}
+
+					Size ExtendWidth(Size baseSize, int width)
+					{
+						return new Size(baseSize.Width + width, baseSize.Height);
+					}
+
 					// Draw the node if it is in the visible area.
 					if (view.ClientArea.Contains(tx, y))
 					{
 						var innerSize = node.Draw(nv, tx, y);
 
-						size = Utils.AggregateNodeSizes(size, innerSize.Extend(childOffset, 0));
+						size = AggregateNodeSizes(size, ExtendWidth(innerSize, childOffset));
 
 						y += innerSize.Height;
 					}
@@ -153,14 +145,14 @@ namespace ReClassNET.Nodes
 							// then draw the node...
 							var innerSize = node.Draw(nv, tx, y);
 
-							size = Utils.AggregateNodeSizes(size, innerSize.Extend(childOffset, 0));
+							size = AggregateNodeSizes(size, ExtendWidth(innerSize, childOffset));
 
 							y += innerSize.Height;
 						}
 						else
 						{
 							// or skip drawing and just use the calculated height.
-							size = Utils.AggregateNodeSizes(size, new Size(0, calculatedHeight));
+							size = AggregateNodeSizes(size, new Size(0, calculatedHeight));
 
 							y += calculatedHeight;
 						}
@@ -194,23 +186,7 @@ namespace ReClassNET.Nodes
 
 			if (spot.Id == 0)
 			{
-				Address = spot.Memory.Process.ParseAddress(spot.Text);
-
 				AddressFormula = spot.Text;
-			}
-		}
-
-		public void UpdateAddress(RemoteProcess process)
-		{
-			Contract.Requires(process != null);
-
-			try
-			{
-				Address = process.ParseAddress(AddressFormula);
-			}
-			catch (ParseException)
-			{
-				Address = IntPtr.Zero;
 			}
 		}
 

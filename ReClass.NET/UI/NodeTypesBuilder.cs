@@ -24,7 +24,7 @@ namespace ReClassNET.UI
 			defaultNodeTypeGroupList.Add(new[] { typeof(FloatNode), typeof(DoubleNode) });
 			defaultNodeTypeGroupList.Add(new[] { typeof(Vector4Node), typeof(Vector3Node), typeof(Vector2Node), typeof(Matrix4x4Node), typeof(Matrix3x4Node), typeof(Matrix3x3Node) });
 			defaultNodeTypeGroupList.Add(new[] { typeof(Utf8TextNode), typeof(Utf8TextPtrNode), typeof(Utf16TextNode), typeof(Utf16TextPtrNode) });
-			defaultNodeTypeGroupList.Add(new[] { typeof(PointerNode), typeof(ArrayNode) });
+			defaultNodeTypeGroupList.Add(new[] { typeof(PointerNode), typeof(ArrayNode), typeof(UnionNode) });
 			defaultNodeTypeGroupList.Add(new[] { typeof(ClassInstanceNode) });
 			defaultNodeTypeGroupList.Add(new[] { typeof(VirtualMethodTableNode), typeof(FunctionNode), typeof(FunctionPtrNode) });
 		}
@@ -119,7 +119,7 @@ namespace ReClassNET.UI
 					Text = "None"
 				};
 
-				items = noneItem.Yield().Append(new ToolStripSeparator()).Concat(items);
+				items = items.Prepend(new ToolStripSeparator()).Prepend(noneItem);
 			}
 
 			return items;

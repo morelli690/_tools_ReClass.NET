@@ -17,7 +17,7 @@ namespace ReClassNET.Nodes
 		public abstract Encoding Encoding { get; }
 
 		/// <summary>Size of one character in bytes.</summary>
-		private int CharacterSize => Encoding.GetSimpleByteCountPerChar();
+		private int CharacterSize => Encoding.GuessByteCountPerChar();
 
 		public override void CopyFromNode(BaseNode node)
 		{
@@ -88,7 +88,7 @@ namespace ReClassNET.Nodes
 			else if (spot.Id == 1)
 			{
 				var data = Encoding.GetBytes(spot.Text);
-				spot.Memory.Process.WriteRemoteMemory(spot.Address, data);
+				spot.Process.WriteRemoteMemory(spot.Address, data);
 			}
 		}
 

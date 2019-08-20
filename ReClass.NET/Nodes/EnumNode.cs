@@ -30,28 +30,12 @@ namespace ReClassNET.Nodes
 			GetParentContainer()?.ChildHasChanged(this);
 		}
 
-		/// <summary>
-		/// Gets the underlaying node for the enum field.
-		/// </summary>
-		/// <returns></returns>
-		public BaseNumericNode GetUnderlayingNode()
+		private string GetTextRepresentation(MemoryBuffer memory)
 		{
-			switch (Enum.Size)
-			{
-				case EnumDescription.UnderlyingTypeSize.OneByte:
-					return new UInt8Node();
-				case EnumDescription.UnderlyingTypeSize.TwoBytes:
-					return new UInt16Node();
-				case EnumDescription.UnderlyingTypeSize.FourBytes:
-					return new UInt32Node();
-				case EnumDescription.UnderlyingTypeSize.EightBytes:
-					return new UInt64Node();
-			}
-
-			throw new Exception(); // TODO
+			return Enum.UseFlagsMode ? GetFlagsStringRepresentation(memory) : GetStringRepresentation(memory);
 		}
 
-		public long ReadValueFromMemory(MemoryBuffer memory)
+		private long ReadSignedValueFromMemory(MemoryBuffer memory)
 		{
 			switch (Enum.Size)
 			{
@@ -63,30 +47,44 @@ namespace ReClassNET.Nodes
 					return memory.ReadInt32(Offset);
 				case EnumDescription.UnderlyingTypeSize.EightBytes:
 					return memory.ReadInt64(Offset);
+				default:
+					throw new ArgumentOutOfRangeException();
 			}
-
-			throw new Exception(); // TODO
 		}
 
-		private string GetStringRepresentation(long value)
+		private string GetStringRepresentation(MemoryBuffer memory)
 		{
-			if (!Enum.UseFlagsMode)
+			var value = ReadSignedValueFromMemory(memory);
+			var index = Enum.Values.FindIndex(kv => kv.Value == value);
+			if (index == -1)
 			{
-				var index = Enum.Values.FindIndex(kv => kv.Value == value);
-				if (index == -1)
-				{
-					return value.ToString();
-				}
-
-				return Enum.Values[index].Key;
+				return value.ToString();
 			}
 
-			return GetFlagsStringRepresentation(value);
+			return Enum.Values[index].Key;
 		}
 
-		private string GetFlagsStringRepresentation(long value)
+		private ulong ReadUnsignedValueFromMemory(MemoryBuffer memory)
 		{
-			var result = (ulong)value;
+			switch (Enum.Size)
+			{
+				case EnumDescription.UnderlyingTypeSize.OneByte:
+					return memory.ReadUInt8(Offset);
+				case EnumDescription.UnderlyingTypeSize.TwoBytes:
+					return memory.ReadUInt16(Offset);
+				case EnumDescription.UnderlyingTypeSize.FourBytes:
+					return memory.ReadUInt32(Offset);
+				case EnumDescription.UnderlyingTypeSize.EightBytes:
+					return memory.ReadUInt64(Offset);
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
+		}
+
+		private string GetFlagsStringRepresentation(MemoryBuffer memory)
+		{
+			var value = ReadUnsignedValueFromMemory(memory);
+			var result = value;
 
 			var values = Enum.Values;
 
@@ -132,7 +130,7 @@ namespace ReClassNET.Nodes
 
 				return "0";
 			}
-			
+
 			return retval.ToString();
 		}
 
@@ -147,8 +145,9 @@ namespace ReClassNET.Nodes
 
 			AddSelection(view, x, y, view.Font.Height);
 
-			x = AddOpenCloseIcon(view, x, y);
-			x = AddIcon(view, x, y, Icons.Class, HotSpot.NoneId, HotSpotType.None);
+			x += TextPadding;
+
+			x = AddIcon(view, x, y, Icons.Enum, HotSpot.NoneId, HotSpotType.None);
 
 			x = AddAddressOffset(view, x, y);
 
@@ -162,9 +161,9 @@ namespace ReClassNET.Nodes
 
 			x = AddText(view, x, y, view.Settings.TextColor, HotSpot.NoneId, "=") + view.Font.Width;
 
-			var value = ReadValueFromMemory(view.Memory);
+			var text = GetTextRepresentation(view.Memory);
 
-			x = AddText(view, x, y, view.Settings.TextColor, HotSpot.NoneId, GetStringRepresentation(value)) + view.Font.Width;
+			x = AddText(view, x, y, view.Settings.TextColor, HotSpot.NoneId, text) + view.Font.Width;
 
 			x = AddComment(view, x, y);
 

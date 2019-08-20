@@ -112,7 +112,7 @@ namespace ReClassNET.Forms
 			projectView.Clear();
 			projectView.AddEnums(currentProject.Enums);
 			projectView.AddClasses(currentProject.Classes);
-			memoryViewControl.ClassNode = currentProject.Classes.FirstOrDefault();
+			CurrentClassNode = currentProject.Classes.FirstOrDefault();
 		}
 
 		/// <summary>Opens the <see cref="InputBytesForm"/> and calls <paramref name="callback"/> with the result.</summary>
@@ -123,12 +123,13 @@ namespace ReClassNET.Forms
 			Contract.Requires(title != null);
 			Contract.Requires(callback != null);
 
-			if (memoryViewControl.ClassNode == null)
+			var classNode = CurrentClassNode;
+			if (classNode == null)
 			{
 				return;
 			}
 
-			using (var ib = new InputBytesForm(memoryViewControl.ClassNode.MemorySize))
+			using (var ib = new InputBytesForm(classNode.MemorySize))
 			{
 				ib.Text = title;
 
@@ -192,11 +193,10 @@ namespace ReClassNET.Forms
 			using (var ofd = new OpenFileDialog())
 			{
 				ofd.CheckFileExists = true;
-				ofd.Filter = $"All ReClass Types |*{ReClassNetFile.FileExtension};*{ReClassFile.FileExtension};*{ReClassQtFile.FileExtension};*{ReClass2007File.FileExtension}"
+				ofd.Filter = $"All ReClass Types |*{ReClassNetFile.FileExtension};*{ReClassFile.FileExtension};*{ReClassQtFile.FileExtension}"
 					+ $"|{ReClassNetFile.FormatName} (*{ReClassNetFile.FileExtension})|*{ReClassNetFile.FileExtension}"
 					+ $"|{ReClassFile.FormatName} (*{ReClassFile.FileExtension})|*{ReClassFile.FileExtension}"
-					+ $"|{ReClassQtFile.FormatName} (*{ReClassQtFile.FileExtension})|*{ReClassQtFile.FileExtension}"
-					+ $"|{ReClass2007File.FormatName} (*{ReClass2007File.FileExtension})|*{ReClass2007File.FileExtension}";
+					+ $"|{ReClassQtFile.FormatName} (*{ReClassQtFile.FileExtension})|*{ReClassQtFile.FileExtension}";
 
 				if (ofd.ShowDialog() == DialogResult.OK)
 				{
@@ -246,9 +246,6 @@ namespace ReClassNET.Forms
 					break;
 				case ReClassFile.FileExtension:
 					import = new ReClassFile(project);
-					break;
-				case ReClass2007File.FileExtension:
-					import = new ReClass2007File(project);
 					break;
 				default:
 					Program.Logger.Log(LogLevel.Error, $"The file '{path}' has an unknown type.");
@@ -314,7 +311,7 @@ namespace ReClassNET.Forms
 
 					node.IsSelected = true;
 
-					var info = new MemoryViewControl.SelectedNodeInfo(node, selected.Memory, selected.Address, selected.Level);
+					var info = new MemoryViewControl.SelectedNodeInfo(node, selected.Process, selected.Memory, selected.Address, selected.Level);
 
 					newSelected.Add(info);
 
@@ -323,7 +320,7 @@ namespace ReClassNET.Forms
 					{
 						foreach (var createdNode in createdNodes)
 						{
-							hotSpotsToReplace.Enqueue(new MemoryViewControl.SelectedNodeInfo(createdNode, selected.Memory, selected.Address + createdNode.Offset - node.Offset, selected.Level));
+							hotSpotsToReplace.Enqueue(new MemoryViewControl.SelectedNodeInfo(createdNode, selected.Process, selected.Memory, selected.Address + createdNode.Offset - node.Offset, selected.Level));
 						}
 					}
 				}

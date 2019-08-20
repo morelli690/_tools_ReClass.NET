@@ -13,8 +13,6 @@ namespace ReClassNET.Memory
 
 		private bool hasHistory;
 
-		public RemoteProcess Process { get; set; }
-
 		public byte[] RawData => data;
 
 		public int Size
@@ -81,19 +79,13 @@ namespace ReClassNET.Memory
 
 			return new MemoryBuffer(this)
 			{
-				Offset = Offset,
-				Process = Process
+				Offset = Offset
 			};
 		}
 
-		public void Update(IntPtr address)
+		public void UpdateFrom(IRemoteMemoryReader reader, IntPtr address)
 		{
-			Update(address, true);
-		}
-
-		public void Update(IntPtr address, bool setHistory)
-		{
-			if (Process == null)
+			if (reader == null)
 			{
 				data.FillWithZero();
 
@@ -102,14 +94,11 @@ namespace ReClassNET.Memory
 				return;
 			}
 
-			if (setHistory)
-			{
-				Array.Copy(data, historyData, data.Length);
+			Array.Copy(data, historyData, data.Length);
 
-				hasHistory = ContainsValidData;
-			}
+			hasHistory = ContainsValidData;
 
-			ContainsValidData = Process.ReadRemoteMemoryIntoBuffer(address, ref data);
+			ContainsValidData = reader.ReadRemoteMemoryIntoBuffer(address, ref data);
 			if (!ContainsValidData)
 			{
 				data.FillWithZero();
@@ -144,14 +133,14 @@ namespace ReClassNET.Memory
 			Array.Copy(data, offset, buffer, 0, buffer.Length);
 		}
 
-		public T ReadObject<T>(int offset) where T : unmanaged
+		public T ReadObject<T>(int offset) where T : struct
 		{
 			Contract.Requires(offset >= 0);
 
 			offset = Offset + offset;
 			if (offset + Marshal.SizeOf(typeof(T)) > data.Length)
 			{
-				return default(T);
+				return default;
 			}
 
 			var handle = GCHandle.Alloc(data, GCHandleType.Pinned);
@@ -173,7 +162,7 @@ namespace ReClassNET.Memory
 			offset = Offset + offset;
 			if (offset + sizeof(sbyte) > data.Length)
 			{
-				return default(sbyte);
+				return default;
 			}
 
 			return (sbyte)data[offset];
@@ -189,7 +178,7 @@ namespace ReClassNET.Memory
 			offset = Offset + offset;
 			if (offset + sizeof(byte) > data.Length)
 			{
-				return default(byte);
+				return default;
 			}
 
 			return data[offset];
@@ -205,7 +194,7 @@ namespace ReClassNET.Memory
 			offset = Offset + offset;
 			if (offset + sizeof(short) > data.Length)
 			{
-				return default(short);
+				return default;
 			}
 
 			return BitConverter.ToInt16(data, offset);
@@ -221,7 +210,7 @@ namespace ReClassNET.Memory
 			offset = Offset + offset;
 			if (offset + sizeof(ushort) > data.Length)
 			{
-				return default(ushort);
+				return default;
 			}
 
 			return BitConverter.ToUInt16(data, offset);
@@ -237,7 +226,7 @@ namespace ReClassNET.Memory
 			offset = Offset + offset;
 			if (offset + sizeof(int) > data.Length)
 			{
-				return default(int);
+				return default;
 			}
 
 			return BitConverter.ToInt32(data, offset);
@@ -253,7 +242,7 @@ namespace ReClassNET.Memory
 			offset = Offset + offset;
 			if (offset + sizeof(uint) > data.Length)
 			{
-				return default(uint);
+				return default;
 			}
 
 			return BitConverter.ToUInt32(data, offset);
@@ -269,7 +258,7 @@ namespace ReClassNET.Memory
 			offset = Offset + offset;
 			if (offset + sizeof(long) > data.Length)
 			{
-				return default(long);
+				return default;
 			}
 
 			return BitConverter.ToInt64(data, offset);
@@ -285,7 +274,7 @@ namespace ReClassNET.Memory
 			offset = Offset + offset;
 			if (offset + sizeof(ulong) > data.Length)
 			{
-				return default(ulong);
+				return default;
 			}
 
 			return BitConverter.ToUInt64(data, offset);
@@ -301,7 +290,7 @@ namespace ReClassNET.Memory
 			offset = Offset + offset;
 			if (offset + sizeof(float) > data.Length)
 			{
-				return default(float);
+				return default;
 			}
 
 			return BitConverter.ToSingle(data, offset);
@@ -317,7 +306,7 @@ namespace ReClassNET.Memory
 			offset = Offset + offset;
 			if (offset + sizeof(double) > data.Length)
 			{
-				return default(double);
+				return default;
 			}
 
 			return BitConverter.ToDouble(data, offset);
@@ -339,8 +328,9 @@ namespace ReClassNET.Memory
 
 		#endregion
 
-		public string ReadPrintableAsciiString(int offset, int length)
+		public string ReadString(Encoding encoding, int offset, int length)
 		{
+			Contract.Requires(encoding != null);
 			Contract.Requires(offset >= 0);
 			Contract.Requires(length >= 0);
 			Contract.Ensures(Contract.Result<string>() != null);
@@ -353,27 +343,6 @@ namespace ReClassNET.Memory
 			if (length <= 0)
 			{
 				return string.Empty;
-			}
-
-			var sb = new StringBuilder(length);
-			for (var i = 0; i < length; ++i)
-			{
-				var c = (char)data[Offset + offset + i];
-				sb.Append(c.IsPrintable() ? c : '.');
-			}
-			return sb.ToString();
-		}
-
-		public string ReadString(Encoding encoding, int offset, int length)
-		{
-			Contract.Requires(encoding != null);
-			Contract.Requires(offset >= 0);
-			Contract.Requires(length >= 0);
-			Contract.Ensures(Contract.Result<string>() != null);
-
-			if (Offset + offset + length > data.Length)
-			{
-				length = data.Length - Offset - offset;
 			}
 
 			var sb = new StringBuilder(encoding.GetString(data, Offset + offset, length));

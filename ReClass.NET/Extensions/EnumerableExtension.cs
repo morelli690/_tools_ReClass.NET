@@ -6,66 +6,8 @@ using System.Linq;
 
 namespace ReClassNET.Extensions
 {
-	public static class LinqExtension
+	public static class EnumerableExtension
 	{
-		public static string Join(this IEnumerable<string> source)
-		{
-			return Join(source, string.Empty);
-		}
-
-		public static string Join(this IEnumerable<string> source, string separator)
-		{
-			return string.Join(separator, source);
-		}
-
-		public static TResult Max<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector, IComparer<TResult> comparer)
-		{
-			comparer = comparer ?? Comparer<TResult>.Default;
-
-			using (var it = source.GetEnumerator())
-			{
-				if (!it.MoveNext())
-				{
-					throw new InvalidOperationException();
-				}
-
-				var max = selector(it.Current);
-				while (it.MoveNext())
-				{
-					var current = selector(it.Current);
-					if (comparer.Compare(current, max) > 0)
-					{
-						max = current;
-					}
-				}
-				return max;
-			}
-		}
-
-		public static TResult Min<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector, IComparer<TResult> comparer)
-		{
-			comparer = comparer ?? Comparer<TResult>.Default;
-
-			using (var it = source.GetEnumerator())
-			{
-				if (!it.MoveNext())
-				{
-					throw new InvalidOperationException();
-				}
-
-				var min = selector(it.Current);
-				while (it.MoveNext())
-				{
-					var current = selector(it.Current);
-					if (comparer.Compare(current, min) < 0)
-					{
-						min = current;
-					}
-				}
-				return min;
-			}
-		}
-
 		[DebuggerStepThrough]
 		public static bool None<TSource>(this IEnumerable<TSource> source)
 		{
@@ -124,68 +66,28 @@ namespace ReClassNET.Extensions
 		}
 
 		[DebuggerStepThrough]
-		public static IEnumerable<TSource> Yield<TSource>(this TSource item)
-		{
-			Contract.Ensures(Contract.Result<IEnumerable<TSource>>() != null);
-
-			yield return item;
-		}
-
-		[DebuggerStepThrough]
-		public static IEnumerable<TSource> Append<TSource>(this IEnumerable<TSource> source, TSource item)
-		{
-			Contract.Ensures(Contract.Result<IEnumerable<TSource>>() != null);
-			Contract.Requires(source != null);
-
-			return source.Concat(Yield(item));
-		}
-
-		[DebuggerStepThrough]
 		public static IEnumerable<TSource> Traverse<TSource>(this IEnumerable<TSource> source, Func<TSource, IEnumerable<TSource>> childSelector)
 		{
 			Contract.Requires(source != null);
 			Contract.Requires(childSelector != null);
 			Contract.Ensures(Contract.Result<IEnumerable<TSource>>() != null);
 
-			var stack = new Stack<TSource>(source);
-			while (stack.Any())
+			var queue = new Queue<TSource>(source);
+			while (queue.Count > 0)
 			{
-				var next = stack.Pop();
+				var next = queue.Dequeue();
 
 				yield return next;
 
 				foreach (var child in childSelector(next))
 				{
-					stack.Push(child);
+					queue.Enqueue(child);
 				}
 			}
 		}
 
 		[DebuggerStepThrough]
-		public static IEnumerable<TSource> SkipUntil<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
-		{
-			Contract.Requires(source != null);
-			Contract.Requires(predicate != null);
-			Contract.Ensures(Contract.Result<IEnumerable<TSource>>() != null);
-
-			using (var iterator = source.GetEnumerator())
-			{
-				while (iterator.MoveNext())
-				{
-					if (predicate(iterator.Current))
-					{
-						break;
-					}
-				}
-				while (iterator.MoveNext())
-				{
-					yield return iterator.Current;
-				}
-			}
-		}
-
-		[DebuggerStepThrough]
-		public static IEnumerable<TSource> TakeUntil<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
+		public static IEnumerable<TSource> TakeWhileInclusive<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
 		{
 			Contract.Requires(source != null);
 			Contract.Requires(predicate != null);
@@ -195,7 +97,7 @@ namespace ReClassNET.Extensions
 			{
 				yield return item;
 
-				if (predicate(item))
+				if (!predicate(item))
 				{
 					yield break;
 				}
@@ -220,45 +122,19 @@ namespace ReClassNET.Extensions
 		}
 
 		[DebuggerStepThrough]
-		public static bool SequenceEqualsEx<T>(this IEnumerable<T> first, IEnumerable<T> second)
+		public static bool IsEquivalentTo<T>(this IEnumerable<T> source, IEnumerable<T> other)
 		{
-			Contract.Requires(first != null);
-			Contract.Requires(second != null);
+			Contract.Requires(source != null);
+			Contract.Requires(other != null);
 
-			return SequenceEqualsEx(first, second, EqualityComparer<T>.Default);
-		}
+			var expected = new List<T>(source);
 
-		[DebuggerStepThrough]
-		public static bool SequenceEqualsEx<TSource>(this IEnumerable<TSource> first, IEnumerable<TSource> second, IEqualityComparer<TSource> comparer)
-		{
-			Contract.Requires(first != null);
-			Contract.Requires(second != null);
-			Contract.Requires(comparer != null);
-
-			var counter = new Dictionary<TSource, int>(comparer);
-			foreach (var element in first)
+			if (other.Any(item => !expected.Remove(item)))
 			{
-				if (counter.ContainsKey(element))
-				{
-					counter[element]++;
-				}
-				else
-				{
-					counter.Add(element, 1);
-				}
+				return false;
 			}
-			foreach (var element in second)
-			{
-				if (counter.ContainsKey(element))
-				{
-					counter[element]--;
-				}
-				else
-				{
-					return false;
-				}
-			}
-			return counter.Values.All(c => c == 0);
+
+			return expected.Count == 0;
 		}
 
 		/// <summary>
@@ -287,6 +163,12 @@ namespace ReClassNET.Extensions
 					first = false;
 				}
 			}
+
+			if (first)
+			{
+				throw new InvalidOperationException("Sequence contains no elements");
+			}
+
 			return result;
 		}
 

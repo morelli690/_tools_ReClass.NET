@@ -9,12 +9,14 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ReClassNET</RootNamespace>
     <AssemblyName>ReClass.NET</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
     <CodeContractsAssemblyMode>0</CodeContractsAssemblyMode>
+    <TargetFrameworkProfile />
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -70,7 +72,6 @@
     <CodeContractsRuntimeCheckingLevel>Full</CodeContractsRuntimeCheckingLevel>
     <CodeContractsReferenceAssembly>%28none%29</CodeContractsReferenceAssembly>
     <CodeContractsAnalysisWarningLevel>3</CodeContractsAnalysisWarningLevel>
-    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -129,25 +130,25 @@
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Deployment" />
     <Reference Include="System.Drawing" />
-    <Reference Include="System.Net.Http" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AddressParser\AstBuilder.cs" />
     <Compile Include="AddressParser\DynamicCompiler.cs" />
-    <Compile Include="AddressParser\IExecuter.cs" />
+    <Compile Include="AddressParser\IExecutor.cs" />
     <Compile Include="AddressParser\Interpreter.cs" />
-    <Compile Include="AddressParser\Operations.cs" />
+    <Compile Include="AddressParser\Expressions.cs" />
+    <Compile Include="AddressParser\ITokenizer.cs" />
     <Compile Include="AddressParser\ParseException.cs" />
+    <Compile Include="AddressParser\Parser.cs" />
     <Compile Include="AddressParser\Token.cs" />
-    <Compile Include="AddressParser\TokenReader.cs" />
+    <Compile Include="AddressParser\Tokenizer.cs" />
     <Compile Include="CodeGenerator\Language.cs" />
     <Compile Include="Core\CoreFunctionsManager.cs" />
     <Compile Include="Core\DataExchange.cs" />
     <Compile Include="Core\ICoreProcessFunctions.cs" />
+    <Compile Include="Core\IInternalCoreFunctions.cs" />
     <Compile Include="Core\InternalCoreFunctions.cs" />
     <Compile Include="Core\NativeCoreWrapper.cs" />
     <Compile Include="DataExchange\ReClass\ReClassClipboard.cs" />
@@ -171,6 +172,9 @@
     <Compile Include="Debugger\RemoteDebugger.Extensions.cs" />
     <Compile Include="Debugger\RemoteDebugger.Thread.cs" />
     <Compile Include="Debugger\SoftwareBreakpoint.cs" />
+    <Compile Include="Extensions\ByteExtension.cs" />
+    <Compile Include="Extensions\ListExtension.cs" />
+    <Compile Include="Extensions\PointExtension.cs" />
     <Compile Include="Extensions\StringBuilderExtensions.cs" />
     <Compile Include="Extensions\XAttributeExtensions.cs" />
     <Compile Include="Forms\EnumEditorForm.cs">
@@ -178,6 +182,12 @@
     </Compile>
     <Compile Include="Forms\EnumEditorForm.Designer.cs">
       <DependentUpon>EnumEditorForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\EnumListForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\EnumListForm.Designer.cs">
+      <DependentUpon>EnumListForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Forms\EnumSelectionForm.cs">
       <SubType>Form</SubType>
@@ -253,10 +263,14 @@
     <Compile Include="MemoryScanner\ScanSettings.cs" />
     <Compile Include="Memory\Disassembler.cs" />
     <Compile Include="Debugger\IBreakpoint.cs" />
+    <Compile Include="Memory\IProcessReader.cs" />
+    <Compile Include="Memory\IRemoteMemoryReader.cs" />
+    <Compile Include="Memory\IRemoteMemoryWriter.cs" />
     <Compile Include="Memory\Module.cs" />
     <Compile Include="Memory\NodeDissector.cs" />
     <Compile Include="Memory\Dumper.cs" />
     <Compile Include="Memory\Section.cs" />
+    <Compile Include="Memory\SimplePeHeader.cs" />
     <Compile Include="Memory\UnionDataType.cs" />
     <Compile Include="Native\INativeMethods.cs" />
     <Compile Include="Native\NativeMethods.Unix.cs" />
@@ -272,6 +286,7 @@
     <Compile Include="Nodes\FunctionNode.cs" />
     <Compile Include="Nodes\NodeUuid.cs" />
     <Compile Include="Nodes\PointerNode.cs" />
+    <Compile Include="Nodes\UnionNode.cs" />
     <Compile Include="Project\CppTypeMapping.cs" />
     <Compile Include="Project\EnumDescription.cs" />
     <Compile Include="Project\ReClassNetProject.cs" />
@@ -290,7 +305,6 @@
     <Compile Include="DataExchange\ReClass\CustomNodeSerializer.cs" />
     <Compile Include="DataExchange\ReClass\IReClassExport.cs" />
     <Compile Include="DataExchange\ReClass\ReClassFile.cs" />
-    <Compile Include="DataExchange\ReClass\ReClass2007File.cs" />
     <Compile Include="Forms\AboutForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -299,6 +313,7 @@
     </Compile>
     <Compile Include="UI\BannerFactory.cs" />
     <Compile Include="UI\BindingDisplayWrapper.cs" />
+    <Compile Include="UI\DrawContextRequestEventArgs.cs" />
     <Compile Include="UI\NodeClickEventArgs.cs" />
     <Compile Include="UI\DpiUtil.cs" />
     <Compile Include="Nodes\INodeInfoReader.cs" />
@@ -369,6 +384,7 @@
     <Compile Include="UI\PlaceholderTextBox.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Util\BitString.cs" />
     <Compile Include="Util\CircularBuffer.cs" />
     <Compile Include="Util\CommandLineArgs.cs" />
     <Compile Include="Util\CustomDataMap.cs" />
@@ -381,7 +397,6 @@
     <Compile Include="Extensions\GraphicsExtensions.cs" />
     <Compile Include="Extensions\IntPtrExtensions.cs" />
     <Compile Include="Extensions\RichTextBoxExtensions.cs" />
-    <Compile Include="Extensions\SizeExtensions.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="Extensions\StringReaderExtensions.cs" />
     <Compile Include="Util\DirectedGraph.cs" />
@@ -399,7 +414,6 @@
       <DependentUpon>SettingsForm.cs</DependentUpon>
     </Compile>
     <Compile Include="UI\HotSpot.cs" />
-    <Compile Include="Extensions\Extensions.cs" />
     <Compile Include="UI\FontEx.cs" />
     <Compile Include="UI\HotSpotTextBox.cs">
       <SubType>Component</SubType>
@@ -495,11 +509,12 @@
     <Compile Include="Symbols\SymbolStore.cs" />
     <Compile Include="UI\GlobalWindowManager.cs" />
     <Compile Include="UI\ViewInfo.cs" />
-    <Compile Include="Extensions\LinqExtensions.cs" />
+    <Compile Include="Extensions\EnumerableExtension.cs" />
+    <Compile Include="Util\HexadecimalFormatter.cs" />
     <Compile Include="Util\IntPtrComparer.cs" />
+    <Compile Include="Util\NumberFormat.cs" />
     <Compile Include="Util\PathUtil.cs" />
     <Compile Include="Util\Rtf\RtfBuilder.cs" />
-    <Compile Include="Util\Rtf\RtfBuilder.RtfFormatLock.cs" />
     <Compile Include="Util\Rtf\RtfBuilder.RtfFormatWrapper.cs" />
     <Compile Include="Util\Rtf\RtfFont.cs" />
     <Compile Include="Util\SettingsSerializer.cs" />
@@ -512,6 +527,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\EnumEditorForm.resx">
       <DependentUpon>EnumEditorForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\EnumListForm.resx">
+      <DependentUpon>EnumListForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\EnumSelectionForm.resx">
       <DependentUpon>EnumSelectionForm.cs</DependentUpon>
@@ -983,15 +1001,13 @@
     <None Include="Resources\Images\B16x16_Button_Remove.png" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="System.Data.SQLite.Core">
-      <Version>1.0.109.2</Version>
-    </PackageReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\Images\B16x16_Button_Pointer.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Images\B16x16_Button_Enum.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Images\B16x16_Button_Union.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

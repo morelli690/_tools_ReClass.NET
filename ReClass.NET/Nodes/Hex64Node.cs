@@ -15,25 +15,25 @@ namespace ReClassNET.Nodes
 			icon = Properties.Resources.B16x16_Button_Hex_64;
 		}
 
-		public override bool UseMemoryPreviewToolTip(HotSpot spot, MemoryBuffer memory, out IntPtr address)
+		public override bool UseMemoryPreviewToolTip(HotSpot spot, out IntPtr address)
 		{
-			var value = memory.ReadObject<UInt64FloatDoubleData>(Offset);
+			var value = spot.Memory.ReadObject<UInt64FloatDoubleData>(Offset);
 
 			address = value.IntPtr;
 
-			return memory.Process.GetSectionToPointer(value.IntPtr) != null;
+			return spot.Process.GetSectionToPointer(value.IntPtr) != null;
 		}
 
-		public override string GetToolTipText(HotSpot spot, MemoryBuffer memory)
+		public override string GetToolTipText(HotSpot spot)
 		{
-			var value = memory.ReadObject<UInt64FloatDoubleData>(Offset);
+			var value = spot.Memory.ReadObject<UInt64FloatDoubleData>(Offset);
 
 			return $"Int64: {value.LongValue}\nUInt64: 0x{value.ULongValue:X016}\nFloat: {value.FloatValue:0.000}\nDouble: {value.DoubleValue:0.000}";
 		}
 
 		public override Size Draw(ViewInfo view, int x, int y)
 		{
-			return Draw(view, x, y, view.Settings.ShowNodeText ? view.Memory.ReadPrintableAsciiString(Offset, 8) + " " : null, 8);
+			return Draw(view, x, y, view.Settings.ShowNodeText ? view.Memory.ReadString(view.Settings.RawDataEncoding, Offset, 8) + " " : null, 8);
 		}
 
 		public override void Update(HotSpot spot)

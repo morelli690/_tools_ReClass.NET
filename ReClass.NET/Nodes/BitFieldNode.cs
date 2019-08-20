@@ -3,6 +3,7 @@ using System.Diagnostics.Contracts;
 using System.Drawing;
 using ReClassNET.Memory;
 using ReClassNET.UI;
+using ReClassNET.Util;
 
 namespace ReClassNET.Nodes
 {
@@ -93,27 +94,23 @@ namespace ReClassNET.Nodes
 			Contract.Requires(memory != null);
 			Contract.Ensures(Contract.Result<string>() != null);
 
-			string str;
 			switch(bits)
 			{
 				case 64:
-					str = Convert.ToString(memory.ReadInt64(Offset), 2);
-					break;
+					return BitString.ToString(memory.ReadInt64(Offset));
 				case 32:
-					str = Convert.ToString(memory.ReadInt32(Offset), 2);
-					break;
+					return BitString.ToString(memory.ReadInt32(Offset));
 				case 16:
-					str = Convert.ToString(memory.ReadInt16(Offset), 2);
-					break;
+					return BitString.ToString(memory.ReadInt16(Offset));
 				default:
-					str = Convert.ToString(memory.ReadUInt8(Offset), 2);
-					break;
+					return BitString.ToString(memory.ReadUInt8(Offset));
 			}
-			return str.PadLeft(bits, '0');
 		}
 
 		public override Size Draw(ViewInfo view, int x, int y)
 		{
+			const int BitsPerBlock = 4;
+
 			if (IsHidden && !IsWrapped)
 			{
 				return DrawHidden(view, x, y);
@@ -140,10 +137,13 @@ namespace ReClassNET.Nodes
 
 			for (var i = 0; i < bits; ++i)
 			{
-				var rect = new Rectangle(x + i * view.Font.Width, y, view.Font.Width, view.Font.Height);
+				var rect = new Rectangle(x + (i + i / BitsPerBlock) * view.Font.Width, y, view.Font.Width, view.Font.Height);
 				AddHotSpot(view, rect, string.Empty, i, HotSpotType.Edit);
 			}
-			x = AddText(view, x, y, view.Settings.ValueColor, HotSpot.NoneId, ConvertValueToBitString(view.Memory)) + view.Font.Width;
+
+			var value = ConvertValueToBitString(view.Memory);
+
+			x = AddText(view, x, y, view.Settings.ValueColor, HotSpot.NoneId, value) + view.Font.Width;
 
 			x += view.Font.Width;
 
@@ -161,11 +161,11 @@ namespace ReClassNET.Nodes
 
 				using (var brush = new SolidBrush(view.Settings.ValueColor))
 				{
-					view.Context.DrawString("1", view.Font.Font, brush, tx + (bits - 1) * view.Font.Width + 1, y, format);
+					var maxCharCount = bits + (bits / 4 - 1) - 1;
 
-					for (var i = 8; i <= bits; i += 8)
+					for (int bitCount = 0, padding = 0; bitCount < bits; bitCount += 4, padding += 5)
 					{
-						view.Context.DrawString(i.ToString(), view.Font.Font, brush, tx  + (bits - i) * view.Font.Width, y, format);
+						view.Context.DrawString(bitCount.ToString(), view.Font.Font, brush, tx + (maxCharCount - padding) * view.Font.Width, y, format);
 					}
 				}
 
@@ -211,7 +211,7 @@ namespace ReClassNET.Nodes
 					{
 						val &= (byte)~(1 << bit);
 					}
-					spot.Memory.Process.WriteRemoteMemory(spot.Address + add, val);
+					spot.Process.WriteRemoteMemory(spot.Address + add, val);
 				}
 			}
 		}

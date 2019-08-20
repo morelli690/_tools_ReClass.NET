@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using ReClassNET.AddressParser;
 using ReClassNET.CodeGenerator;
 using ReClassNET.Core;
 using ReClassNET.DataExchange.ReClass;
@@ -29,6 +30,10 @@ namespace ReClassNET.Forms
 		private ReClassNetProject currentProject;
 		public ReClassNetProject CurrentProject => currentProject;
 
+		private ClassNode currentClassNode;
+
+		private readonly MemoryBuffer memoryViewBuffer = new MemoryBuffer();
+
 		private Task updateProcessInformationsTask;
 		private Task loadSymbolsTask;
 		private CancellationTokenSource loadSymbolsTaskToken;
@@ -36,6 +41,20 @@ namespace ReClassNET.Forms
 		public ProjectView ProjectView => projectView;
 
 		public MenuStrip MainMenu => mainMenuStrip;
+
+		public ClassNode CurrentClassNode
+		{
+			get => currentClassNode;
+			set
+			{
+				currentClassNode = value;
+
+				projectView.SelectedClass = value;
+
+				memoryViewControl.Reset();
+				memoryViewControl.Invalidate();
+			}
+		}
 
 		public MainForm()
 		{
@@ -60,11 +79,6 @@ namespace ReClassNET.Forms
 			{
 				Text = $"{Constants.ApplicationName} ({Constants.Platform})";
 				processInfoToolStripStatusLabel.Text = "No process selected";
-			};
-
-			memoryViewControl.Memory = new MemoryBuffer
-			{
-				Process = Program.RemoteProcess
 			};
 
 			pluginManager = new PluginManager(new DefaultPluginHost(this, Program.RemoteProcess, Program.Logger));
@@ -252,8 +266,6 @@ namespace ReClassNET.Forms
 		private void clearProjectToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			SetProject(new ReClassNetProject());
-
-			memoryViewControl.ClassNode = null;
 		}
 
 		private void saveToolStripMenuItem_Click(object sender, EventArgs e)
@@ -555,7 +567,7 @@ namespace ReClassNET.Forms
 
 			foreach (var g in hexNodes.GroupBy(n => n.Node.GetParentContainer()))
 			{
-				NodeDissector.DissectNodes(g.Select(h => (BaseHexNode)h.Node), g.First().Memory);
+				NodeDissector.DissectNodes(g.Select(h => (BaseHexNode)h.Node), Program.RemoteProcess, g.First().Memory);
 			}
 
 			ClearSelection();
@@ -710,7 +722,6 @@ namespace ReClassNET.Forms
 						case ReClassNetFile.FileExtension:
 						case ReClassQtFile.FileExtension:
 						case ReClassFile.FileExtension:
-						case ReClass2007File.FileExtension:
 							e.Effect = DragDropEffects.Copy;
 							break;
 					}
@@ -747,9 +758,7 @@ namespace ReClassNET.Forms
 
 		private void classesView_ClassSelected(object sender, ClassNode node)
 		{
-			memoryViewControl.ClassNode = node;
-
-			memoryViewControl.Invalidate();
+			CurrentClassNode = node;
 		}
 
 		private void memoryViewControl_KeyDown(object sender, KeyEventArgs e)
@@ -801,7 +810,7 @@ namespace ReClassNET.Forms
 					Name = "None"
 				};
 
-				using (var csf = new ClassSelectionForm(noneClass.Yield().Concat(classes)))
+				using (var csf = new ClassSelectionForm(classes.Prepend(noneClass)))
 				{
 					if (csf.ShowDialog() == DialogResult.OK)
 					{
@@ -948,6 +957,62 @@ namespace ReClassNET.Forms
 			catch (ClassReferencedException ex)
 			{
 				Program.Logger.Log(ex);
+			}
+		}
+
+		private void editEnumsToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			using (var elf = new EnumListForm(currentProject))
+			{
+				elf.ShowDialog();
+			}
+		}
+
+		private void editEnumToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			var @enum = projectView.SelectedEnum;
+			if (@enum != null)
+			{
+				using (var eef = new EnumEditorForm(@enum))
+				{
+					eef.ShowDialog();
+				}
+			}
+		}
+
+		private void showEnumsToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			using (var elf = new EnumListForm(currentProject))
+			{
+				elf.ShowDialog();
+			}
+		}
+
+		private void memoryViewControl_DrawContextRequested(object sender, DrawContextRequestEventArgs args)
+		{
+			var process = Program.RemoteProcess;
+
+			var classNode = CurrentClassNode;
+			if (classNode != null)
+			{
+				memoryViewBuffer.Size = classNode.MemorySize;
+
+				IntPtr address;
+				try
+				{
+					address = process.ParseAddress(classNode.AddressFormula);
+				}
+				catch (ParseException)
+				{
+					address = IntPtr.Zero;
+				}
+				memoryViewBuffer.UpdateFrom(process, address);
+
+				args.Settings = Program.Settings;
+				args.Process = process;
+				args.Memory = memoryViewBuffer;
+				args.Node = classNode;
+				args.BaseAddress = address;
 			}
 		}
 	}

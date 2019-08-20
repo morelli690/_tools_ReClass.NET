@@ -14,12 +14,12 @@ namespace ReClassNET.Forms
 {
 	public partial class ProcessInfoForm : IconForm
 	{
-		private readonly RemoteProcess process;
+		private readonly IProcessReader process;
 
 		/// <summary>The context menu of the sections grid view.</summary>
 		public ContextMenuStrip GridContextMenu => contextMenuStrip;
 
-		public ProcessInfoForm(RemoteProcess process)
+		public ProcessInfoForm(IProcessReader process)
 		{
 			Contract.Requires(process != null);
 
@@ -61,34 +61,30 @@ namespace ReClassNET.Forms
 
 		private async void ProcessInfoForm_Load(object sender, EventArgs e)
 		{
-			if (!process.IsValid)
-			{
-				return;
-			}
+			var sectionsTable = new DataTable();
+			sectionsTable.Columns.Add("address", typeof(string));
+			sectionsTable.Columns.Add("size", typeof(string));
+			sectionsTable.Columns.Add("name", typeof(string));
+			sectionsTable.Columns.Add("protection", typeof(string));
+			sectionsTable.Columns.Add("type", typeof(string));
+			sectionsTable.Columns.Add("module", typeof(string));
+			sectionsTable.Columns.Add("section", typeof(Section));
 
-			var sections = new DataTable();
-			sections.Columns.Add("address", typeof(string));
-			sections.Columns.Add("size", typeof(string));
-			sections.Columns.Add("name", typeof(string));
-			sections.Columns.Add("protection", typeof(string));
-			sections.Columns.Add("type", typeof(string));
-			sections.Columns.Add("module", typeof(string));
-			sections.Columns.Add("section", typeof(Section));
-
-			var modules = new DataTable();
-			modules.Columns.Add("icon", typeof(Icon));
-			modules.Columns.Add("name", typeof(string));
-			modules.Columns.Add("address", typeof(string));
-			modules.Columns.Add("size", typeof(string));
-			modules.Columns.Add("path", typeof(string));
-			modules.Columns.Add("module", typeof(Module));
+			var modulesTable = new DataTable();
+			modulesTable.Columns.Add("icon", typeof(Icon));
+			modulesTable.Columns.Add("name", typeof(string));
+			modulesTable.Columns.Add("address", typeof(string));
+			modulesTable.Columns.Add("size", typeof(string));
+			modulesTable.Columns.Add("path", typeof(string));
+			modulesTable.Columns.Add("module", typeof(Module));
 
 			await Task.Run(() =>
 			{
-				process.EnumerateRemoteSectionsAndModules(
-					delegate (Section section)
+				if (process.EnumerateRemoteSectionsAndModules(out var sections, out var modules))
+				{
+					foreach (var section in sections)
 					{
-						var row = sections.NewRow();
+						var row = sectionsTable.NewRow();
 						row["address"] = section.Start.ToString(Constants.AddressHexFormat);
 						row["size"] = section.Size.ToString(Constants.AddressHexFormat);
 						row["name"] = section.Name;
@@ -96,24 +92,24 @@ namespace ReClassNET.Forms
 						row["type"] = section.Type.ToString();
 						row["module"] = section.ModuleName;
 						row["section"] = section;
-						sections.Rows.Add(row);
-					},
-					delegate (Module module)
+						sectionsTable.Rows.Add(row);
+					}
+					foreach (var module in modules)
 					{
-						var row = modules.NewRow();
+						var row = modulesTable.NewRow();
 						row["icon"] = NativeMethods.GetIconForFile(module.Path);
 						row["name"] = module.Name;
 						row["address"] = module.Start.ToString(Constants.AddressHexFormat);
 						row["size"] = module.Size.ToString(Constants.AddressHexFormat);
 						row["path"] = module.Path;
 						row["module"] = module;
-						modules.Rows.Add(row);
+						modulesTable.Rows.Add(row);
 					}
-				);
+				}
 			});
 
-			sectionsDataGridView.DataSource = sections;
-			modulesDataGridView.DataSource = modules;
+			sectionsDataGridView.DataSource = sectionsTable;
+			modulesDataGridView.DataSource = modulesTable;
 		}
 
 		private void SelectRow_CellMouseDown(object sender, DataGridViewCellMouseEventArgs e)
@@ -145,11 +141,8 @@ namespace ReClassNET.Forms
 
 		private void dumpToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			bool isModule;
-			string fileName;
-			var initialDirectory = string.Empty;
-			IntPtr address;
-			int size;
+			Func<SaveFileDialog> createDialogFn;
+			Action<IRemoteMemoryReader, Stream> dumpFn;
 
 			if (GetToolStripSourceControl(sender) == modulesDataGridView)
 			{
@@ -159,11 +152,18 @@ namespace ReClassNET.Forms
 					return;
 				}
 
-				isModule = true;
-				fileName = $"{Path.GetFileNameWithoutExtension(module.Name)}_Dumped{Path.GetExtension(module.Name)}";
-				initialDirectory = Path.GetDirectoryName(module.Path);
-				address = module.Start;
-				size = module.Size.ToInt32();
+				createDialogFn = () => new SaveFileDialog
+				{
+					FileName = $"{Path.GetFileNameWithoutExtension(module.Name)}_Dumped{Path.GetExtension(module.Name)}",
+					InitialDirectory = Path.GetDirectoryName(module.Path)
+				};
+
+				dumpFn = (reader, stream) =>
+				{
+					Dumper.DumpModule(reader, module, stream);
+
+					MessageBox.Show("Module successfully dumped.", Constants.ApplicationName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+				};
 			}
 			else
 			{
@@ -173,42 +173,38 @@ namespace ReClassNET.Forms
 					return;
 				}
 
-				isModule = false;
-				fileName = $"Section_{section.Start.ToString("X")}_{section.End.ToString("X")}.dat";
-				address = section.Start;
-				size = section.Size.ToInt32();
+				createDialogFn = () => new SaveFileDialog
+				{
+					FileName = $"Section_{section.Start.ToString("X")}_{section.End.ToString("X")}.dat"
+				};
+
+				dumpFn = (reader, stream) =>
+				{
+					Dumper.DumpSection(reader, section, stream);
+
+					MessageBox.Show("Section successfully dumped.", Constants.ApplicationName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+				};
 			}
 
-			using (var sfd = new SaveFileDialog())
+			using (var sfd = createDialogFn())
 			{
-				sfd.FileName = fileName;
 				sfd.Filter = "All|*.*";
-				sfd.InitialDirectory = initialDirectory;
 
-				if (sfd.ShowDialog() == DialogResult.OK)
+				if (sfd.ShowDialog() != DialogResult.OK)
 				{
-					var dumper = new Dumper(process);
+					return;
+				}
 
-					try
+				try
+				{
+					using (var stream = sfd.OpenFile())
 					{
-						using (var stream = sfd.OpenFile())
-						{
-							if (isModule)
-							{
-								dumper.DumpModule(address, size, stream);
-							}
-							else
-							{
-								dumper.DumpSection(address, size, stream);
-							}
-
-							MessageBox.Show("Module successfully dumped.", Constants.ApplicationName, MessageBoxButtons.OK, MessageBoxIcon.Information);
-						}
+						dumpFn(process, stream);
 					}
-					catch (Exception ex)
-					{
-						Program.ShowException(ex);
-					}
+				}
+				catch (Exception ex)
+				{
+					Program.ShowException(ex);
 				}
 			}
 		}
@@ -234,7 +230,7 @@ namespace ReClassNET.Forms
 			}
 		}
 
-		private Control GetToolStripSourceControl(object sender)
+		private static Control GetToolStripSourceControl(object sender)
 		{
 			return ((sender as ToolStripMenuItem)?.GetCurrentParent() as ContextMenuStrip)?.SourceControl;
 		}

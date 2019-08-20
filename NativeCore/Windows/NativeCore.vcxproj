@@ -22,32 +22,32 @@
     <ProjectGuid>{22CA6FDB-7622-4F94-8FC2-2E7AB481C86F}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>NativeCore</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -192,7 +192,20 @@
     <None Include="exports.def" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Dependencies\distorm\include\distorm.h" />
+    <ClInclude Include="..\Dependencies\distorm\include\mnemonics.h" />
+    <ClInclude Include="..\Dependencies\distorm\src\config.h" />
+    <ClInclude Include="..\Dependencies\distorm\src\decoder.h" />
+    <ClInclude Include="..\Dependencies\distorm\src\instructions.h" />
+    <ClInclude Include="..\Dependencies\distorm\src\insts.h" />
+    <ClInclude Include="..\Dependencies\distorm\src\operands.h" />
+    <ClInclude Include="..\Dependencies\distorm\src\prefix.h" />
+    <ClInclude Include="..\Dependencies\distorm\src\textdefs.h" />
+    <ClInclude Include="..\Dependencies\distorm\src\wstring.h" />
+    <ClInclude Include="..\Dependencies\distorm\src\x86defs.h" />
     <ClInclude Include="..\ReClassNET_Plugin.hpp" />
+    <ClInclude Include="..\Shared\DistormHelper.hpp" />
+    <ClInclude Include="..\Shared\Keys.hpp" />
     <ClInclude Include="NativeCore.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

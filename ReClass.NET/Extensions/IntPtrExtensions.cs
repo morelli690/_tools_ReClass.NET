@@ -18,9 +18,9 @@ namespace ReClassNET.Extensions
 		public static bool MayBeValid(this IntPtr ptr)
 		{
 #if RECLASSNET64
-			return ptr.InRange((IntPtr)0x10000, (IntPtr)long.MaxValue);
+			return ptr.IsInRange((IntPtr)0x10000, (IntPtr)long.MaxValue);
 #else
-			return ptr.InRange((IntPtr)0x10000, (IntPtr)int.MaxValue);
+			return ptr.IsInRange((IntPtr)0x10000, (IntPtr)int.MaxValue);
 #endif
 		}
 
@@ -83,7 +83,18 @@ namespace ReClassNET.Extensions
 
 		[Pure]
 		[DebuggerStepThrough]
-		public static bool InRange(this IntPtr address, IntPtr start, IntPtr end)
+		public static IntPtr Negate(this IntPtr ptr)
+		{
+#if RECLASSNET64
+			return new IntPtr(-ptr.ToInt64());
+#else
+			return new IntPtr(-ptr.ToInt32());
+#endif
+		}
+
+		[Pure]
+		[DebuggerStepThrough]
+		public static bool IsInRange(this IntPtr address, IntPtr start, IntPtr end)
 		{
 #if RECLASSNET64
 			var val = (ulong)address.ToInt64();
@@ -109,7 +120,7 @@ namespace ReClassNET.Extensions
 		[DebuggerStepThrough]
 		public static int CompareToRange(this IntPtr address, IntPtr start, IntPtr end)
 		{
-			if (InRange(address, start, end))
+			if (IsInRange(address, start, end))
 			{
 				return 0;
 			}
@@ -142,6 +153,24 @@ namespace ReClassNET.Extensions
 			}
 
 			return value;
+#endif
+		}
+
+		[Pure]
+		[DebuggerStepThrough]
+		public static IntPtr From(int value)
+		{
+			return (IntPtr)value;
+		}
+
+		[Pure]
+		[DebuggerStepThrough]
+		public static IntPtr From(long value)
+		{
+#if RECLASSNET64
+			return (IntPtr)value;
+#else
+			return (IntPtr)unchecked((int)value);
 #endif
 		}
 	}

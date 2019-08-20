@@ -21,14 +21,6 @@ namespace ReClassNET.MemoryScanner.Comparer
 		{
 			CompareType = compareType;
 
-			if (compareType == ScanCompareType.Between || compareType == ScanCompareType.BetweenOrEqual)
-			{
-				if (value1 > value2)
-				{
-					Utils.Swap(ref value1, ref value2);
-				}
-			}
-
 			RoundType = roundType;
 			this.significantDigits = Math.Max(significantDigits, 1);
 			Value1 = Math.Round(value1, this.significantDigits, MidpointRounding.AwayFromZero);
@@ -45,7 +37,7 @@ namespace ReClassNET.MemoryScanner.Comparer
 			switch (RoundType)
 			{
 				case ScanRoundMode.Strict:
-					return Value1.IsNearlyEqual(Math.Round(value, significantDigits, MidpointRounding.AwayFromZero));
+					return Value1.IsNearlyEqual(Math.Round(value, significantDigits, MidpointRounding.AwayFromZero), 0.0001);
 				case ScanRoundMode.Normal:
 					return minValue < value && value < maxValue;
 				case ScanRoundMode.Truncate:
